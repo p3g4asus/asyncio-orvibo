@@ -57,7 +57,7 @@ class OrviboUDP:
                     break
             except Exception as ex:
                 self.destroy_local()
-                _LOGGER.error("Protocol error: %s",ex)
+                _LOGGER.error("Protocol[%s:%d] error: %s",*addr,ex)
         return out_data
     
     async def init_local(self,**kwargs):

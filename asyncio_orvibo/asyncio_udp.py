@@ -68,7 +68,7 @@ class Endpoint:
         try:
             self._queue.put_nowait((data, addr))
         except asyncio.QueueFull:
-            _LOGGER.warning('Endpoint queue is full')
+            _LOGGER.warning('Endpoint[%s:%d] queue is full',*addr)
 
     def close(self):
         # Manage flag
@@ -99,8 +99,8 @@ class Endpoint:
                         return rec_data,rec_addr
                     elif rv==CD_ADD_AND_CONTINUE_WAITING:
                         lstdata.append((rec_data,rec_addr))
-                except asyncio.TimeoutError as ex:
-                    _LOGGER.warning("Protocol timeout %s",ex)
+                except asyncio.TimeoutError:
+                    _LOGGER.warning("Protocol[%s:%d] timeout",*addr)
                     break
                 passed = time.time()-starttime
             if lstdata:
