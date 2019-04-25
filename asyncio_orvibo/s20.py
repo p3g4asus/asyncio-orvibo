@@ -29,9 +29,11 @@ class S20(OrviboUDP):
         
     async def state_change(self,newst):
         if await self.subscribe_if_necessary():
+            newst = 1 if int(newst) else 0
             pkt = MAGIC + STATECHANGE_LEN + STATECHANGE_ID + self.mac + PADDING_1\
-                + PADDING_2+(b'\x01' if int(newst) else b'\x00')
+                + PADDING_2+(b'\x01' if newst else b'\x00')
             if await self.protocol(pkt,self.hp,self.check_statechange_packet,3,3):
+                self.state = newst
                 return True
         return False
     
