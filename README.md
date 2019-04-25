@@ -5,11 +5,11 @@ Control Orvibo devices with Python 3 using asyncio (single threaded with event l
 ## Usage
 
 ```python
-from asyncio_orvibo import S20
+from asyncio_orvibo import s20
 import asyncio
 import traceback
-async def test_switch_all_off_on()
-    dict_devices = await S20.discover()
+async def test_switch_all_off_on():
+    dict_devices = await s20.S20.discovery()
     for _,s in dict_devices.items():
         if await s.state_change(0):
             print("State off OK %s",s)
@@ -29,12 +29,12 @@ except:
     
 ################################################
 
-from asyncio_orvibo import AllOne
+from asyncio_orvibo import allone
 import asyncio
 import traceback
 import binascii
-async def test_emit(k)
-    dict_devices = await AllOne.discover()
+async def test_emit(k):
+    dict_devices = await allone.AllOne.discovery()
     payload = binascii.unhexlify(k)
     for _,a in dict_devices.items():
         rv = await a.emit_ir(payload)
