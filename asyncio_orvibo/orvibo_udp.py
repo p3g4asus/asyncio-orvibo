@@ -107,7 +107,7 @@ class OrviboUDP:
                                     + PADDING_1 + self.mac_reversed + PADDING_1,self.hp,self.check_subscription_packet,3,3)
             if out_data:
                 self.time_subscribe = time.time()
-                self.use_subscribe_data(out_data)
+                self.use_subscribe_data(out_data[0])
                 return True
             return False
         else:
