@@ -23,7 +23,7 @@ PADDING_2 = b'\x00\x00\x00\x00'
 SUBSCRIPTION_TIMEOUT = 60
 
 class OrviboUDP:
-    
+    _local = None
     def __repr__(self):
         return "[%s:%d] %s %s" % (*self.hp,OrviboUDP.print_mac(self.mac),time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.mytime)))
         
@@ -39,45 +39,49 @@ class OrviboUDP:
         self.mac_reversed = bytes(ba)
         self.time_subscribe = 0
         self.mytime = mytime - 2208988800 if mytime is not None else time.time()
-        self.local = None
         self.learning_time = 0
         
     def use_subscribe_data(self,s_data):
         pass
-        
-    async def protocol(self,data,addr,check_data_fun,timeout,retry=3,**kwargs):
+    
+    @staticmethod
+    async def protocol(data,addr,check_data_fun,timeout,retry=3,**kwargs):
         out_data = None
         for _ in range(retry):
             try:
-                if await self.init_local(**kwargs):
+                if await OrviboUDP.init_local(**kwargs):
                     for _ in range(retry):
-                        out_data = await self.local.protocol(data,addr,check_data_fun,timeout,1)
+                        out_data = await OrviboUDP._local.protocol(data,addr,check_data_fun,timeout,1)
                         if out_data:
                             break
                     break
             except Exception as ex:
-                self.destroy_local()
+                OrviboUDP.destroy_local()
                 _LOGGER.error("Protocol[%s:%d] error: %s",*addr,ex)
-        if not out_data:
-            self.destroy_local()
+        #=======================================================================
+        # if not out_data:
+        #     OrviboUDP.destroy_local()
+        #=======================================================================
         return out_data
     
-    async def init_local(self,**kwargs):
-        if not self.local:
+    @staticmethod
+    async def init_local(**kwargs):
+        if not OrviboUDP._local:
             try:
-                self.local = await open_local_endpoint(port=PORT,**kwargs)
+                OrviboUDP._local = await open_local_endpoint(port=PORT,**kwargs)
             except Exception as ex:
                 _LOGGER.error("Open endpoint error %s",ex)
-                self.local = None
-        return self.local
+                OrviboUDP._local = None
+        return OrviboUDP._local
     
-    def destroy_local(self):
-        if self.local:
+    @staticmethod
+    def destroy_local():
+        if OrviboUDP._local:
             try:
-                self.local.abort()
+                OrviboUDP._local.abort()
             except:
                 pass
-            self.local = None
+            OrviboUDP._local = None
         
     @staticmethod
     def print_mac(mac_bytes):
@@ -117,11 +121,9 @@ class OrviboUDP:
         
     @staticmethod
     async def discovery(broadcast_address='255.255.255.255',timeout=5,retries=3):
-        s = OrviboUDP(('127.0.0.1',PORT), b'\xac\xcf\x12\x34')
-        out_data = await s.protocol(MAGIC + DISCOVERY_LEN + DISCOVERY_ID,\
+        out_data = await OrviboUDP.protocol(MAGIC + DISCOVERY_LEN + DISCOVERY_ID,\
                               (broadcast_address,PORT),
                               OrviboUDP.check_discovery_packet, timeout, retries,allow_broadcast=True)
-        s.destroy_local()
         if out_data:
             hosts = dict()
             for d_a in out_data:
