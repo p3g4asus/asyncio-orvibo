@@ -1,4 +1,4 @@
-# python-orvibo
+# asyncio-orvibo
 
 Control Orvibo devices with Python 3 using asyncio (single threaded with event loop). Currently supports the S20 WiFi Smart Switch and AllOne IR.
 
