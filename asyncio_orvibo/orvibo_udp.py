@@ -129,7 +129,7 @@ class OrviboUDP:
                     else:
                         _LOGGER.warning("Unknown device type %s %s", keyv,OrviboUDP.print_mac(data[31:37]))
                         continue
-                    dev = dict(hp=d_a[1],type=tp,mac=data[7:13],mytime=struct.unpack('<I',data[37:41])[0])
+                    dev = dict(hp=d_a[1],type=tp,mac=data[7:13],mytime=struct.unpack('<I',data[37:41])[0],raw=data)
                     _LOGGER.info("Discovered device %s", dev)
                     hosts[keyv] = dev
             return hosts

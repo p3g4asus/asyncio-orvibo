@@ -41,7 +41,9 @@ class S20(OrviboUDP):
         hosts = dict()
         for k,v in disc.items():
             if v['type']==DISCOVERY_S20:
-                hosts[k] = S20(**v)
+                s = S20(**v)
+                s.state = 0 if v['raw'][-1:]==b'\x00' else 1
+                hosts[k] = s
         return hosts
 
 if __name__ == '__main__': # pragma: no cover
