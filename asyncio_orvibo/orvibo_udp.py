@@ -29,7 +29,11 @@ class OrviboUDP:
         
     def __init__(self,hp,mac,mytime = None,**kwargs):
         self.hp = hp
-        self.mac = mac
+        if isinstance(mac, bytes):
+            self.mac = mac
+        else:
+            mac = mac.replace(':','').replace('-','').replace(' ','')
+            self.mac = binascii.unhexlify(mac)
         ba = bytearray(self.mac)
         ba.reverse()
         self.mac_reversed = bytes(ba)
