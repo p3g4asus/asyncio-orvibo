@@ -1,8 +1,18 @@
-'''
-Created on 25 apr 2019
-
-@author: Matteo
-'''
+""" taken from https://gist.github.com/vxgmichel/e47bff34b68adb3cf6bd4845c4bed448
+Provide high-level UDP endpoints for asyncio.
+Example:
+async def main():
+    # Create a local UDP enpoint
+    local = await open_local_endpoint('localhost', 8888)
+    # Create a remote UDP enpoint, pointing to the first one
+    remote = await open_remote_endpoint(*local.address)
+    # The remote endpoint sends a datagram
+    remote.send(b'Hey Hey, My My')
+    # The local endpoint receives the datagram, along with the address
+    data, address = await local.receive()
+    # This prints: Got 'Hey Hey, My My' from 127.0.0.1 port 8888
+    print(f"Got {data!r} from {address[0]} port {address[1]}")
+"""
 
 import asyncio
 import time
