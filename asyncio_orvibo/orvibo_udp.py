@@ -45,13 +45,13 @@ class OrviboUDP:
         pass
     
     @staticmethod
-    async def protocol(data,addr,check_data_fun,timeout,retry=3,**kwargs):
+    async def protocol(data,addr,check_data_fun,timeout,retry=3,is_broadcast=False,**kwargs):
         out_data = None
         for _ in range(retry):
             try:
                 if await OrviboUDP.init_local(**kwargs):
                     for _ in range(retry):
-                        out_data = await OrviboUDP._local.protocol(data,addr,check_data_fun,timeout,1)
+                        out_data = await OrviboUDP._local.protocol(data,addr,check_data_fun,timeout,1,is_broadcast)
                         if out_data:
                             break
                     break
@@ -123,7 +123,7 @@ class OrviboUDP:
     async def discovery(broadcast_address='255.255.255.255',timeout=5,retries=3):
         out_data = await OrviboUDP.protocol(MAGIC + DISCOVERY_LEN + DISCOVERY_ID,\
                               (broadcast_address,PORT),
-                              OrviboUDP.check_discovery_packet, timeout, retries,allow_broadcast=True)
+                              OrviboUDP.check_discovery_packet, timeout, retries,is_broadcast=True,allow_broadcast=True)
         if out_data:
             hosts = dict()
             for d_a in out_data:

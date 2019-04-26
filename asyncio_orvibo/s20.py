@@ -77,7 +77,7 @@ if __name__ == '__main__': # pragma: no cover
     _LOGGER.addHandler(handler)
     loop = asyncio.get_event_loop()
     try:
-        #loop.run_until_complete(discoveryTest())
+        loop.run_until_complete(discoveryTest())
         asyncio.ensure_future(testFake(10))
         loop.run_until_complete(set_state_test(0))
     except Exception as ex:

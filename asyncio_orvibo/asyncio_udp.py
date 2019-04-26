@@ -58,15 +58,18 @@ class Endpoint:
     def __init__(self, queue_size=None):
         if queue_size is None:
             queue_size = 0
-        self._queue = asyncio.Queue(queue_size)
+        self._queue = dict()
         self._closed = False
         self._transport = None
+        self._broadcast = False
+        self._queue_size = queue_size
 
     # Protocol callbacks
 
     def feed_datagram(self, data, addr):
         try:
-            self._queue.put_nowait((data, addr))
+            key = self._init_queue(addr)
+            self._queue[key].put_nowait((data, addr))
         except asyncio.QueueFull:
             _LOGGER.warning('Endpoint[%s:%d] queue is full',*addr)
 
@@ -76,26 +79,30 @@ class Endpoint:
             return
         self._closed = True
         # Wake up
-        if self._queue.empty():
-            self.feed_datagram(None, None)
+        for a,q in self._queue.items():
+            if q.empty():
+                self.feed_datagram(None, a)
         # Close transport
         if self._transport:
             self._transport.close()
 
     # User methods
     
-    async def protocol(self,data,addr,check_data_fun,timeout,retry=3):
-        lstdata = []        
+    async def protocol(self,data,addr,check_data_fun,timeout,retry=3,is_broadcast = False):
+        lstdata = []
+        if is_broadcast:
+            self.broadcast = True
         for _ in range(retry):
             if data:
-                self.send(data,addr)
+                self.send(data,addr,True)
             starttime = time.time()
             passed = 0
             while passed<timeout:
                 try:
-                    (rec_data,rec_addr) = await asyncio.wait_for(self.receive(), timeout-passed)
+                    (rec_data,rec_addr) = await asyncio.wait_for(self.receive(addr), timeout-passed)
                     rv = check_data_fun(rec_data,rec_addr) 
                     if rv==CD_RETURN_IMMEDIATELY:
+                        self.broadcast = False
                         return rec_data,rec_addr
                     elif rv==CD_ADD_AND_CONTINUE_WAITING:
                         lstdata.append((rec_data,rec_addr))
@@ -104,25 +111,47 @@ class Endpoint:
                     break
                 passed = time.time()-starttime
             if lstdata:
+                self.broadcast = False
                 return lstdata
             elif not data:
                 break
+        self.broadcast = False
         return None
+    
+    @property
+    def broadcast(self):
+        return self._broadcast
+    @broadcast.setter
+    def broadcast(self,v):
+        self._broadcast = v
+        
+    
+    def _init_queue(self,addr):
+        if self._broadcast:
+            key = '*'
+        else:
+            key = addr[0]
+        if key not in self._queue:
+            self._queue[key] =  asyncio.Queue(self._queue_size)
+        return key
 
-    def send(self, data, addr):
+    def send(self, data, addr, expect_response):
         """Send a datagram to the given address."""
         if self._closed:
             raise IOError("Enpoint is closed")
+        if expect_response:
+            self._init_queue(addr)
         self._transport.sendto(data, addr)
 
-    async def receive(self):
+    async def receive(self,expected_sender = ('*',0)):
         """Wait for an incoming datagram and return it with
         the corresponding address.
         This method is a coroutine.
         """
-        if self._queue.empty() and self._closed:
+        key = self._init_queue(expected_sender)
+        if self._queue[key].empty() and self._closed:
             raise IOError("Enpoint is closed")
-        data, addr = await self._queue.get()
+        data, addr = await self._queue[key].get()
         if data is None:
             raise IOError("Enpoint is closed")
         return data, addr
@@ -158,17 +187,6 @@ class RemoteEndpoint(Endpoint):
     """High-level interface for UDP remote enpoints.
     It is initialized with an optional queue size for the incoming datagrams.
     """
-
-    def send(self, data):
-        """Send a datagram to the remote host."""
-        super().send(data, None)
-
-    async def receive(self):
-        """ Wait for an incoming datagram from the remote host.
-        This method is a coroutine.
-        """
-        data, addr = await super().receive()
-        return data
 
 
 # High-level coroutines
