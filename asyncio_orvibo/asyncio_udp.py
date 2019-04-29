@@ -17,7 +17,7 @@ async def main():
 import asyncio
 import time
 from . import _LOGGER
-from .const import (CD_ADD_AND_CONTINUE_WAITING,CD_RETURN_IMMEDIATELY)
+from .const import (CD_ADD_AND_CONTINUE_WAITING,CD_RETURN_IMMEDIATELY,CD_ABORT_AND_RETRY)
 
 
 class DatagramEndpointProtocol(asyncio.DatagramProtocol):
@@ -107,6 +107,8 @@ class Endpoint:
                     if rv==CD_RETURN_IMMEDIATELY:
                         self.broadcast = False
                         return rec_data,rec_addr
+                    elif rv==CD_ABORT_AND_RETRY:
+                        break
                     elif rv==CD_ADD_AND_CONTINUE_WAITING:
                         lstdata.append((rec_data,rec_addr))
                 except asyncio.TimeoutError:
