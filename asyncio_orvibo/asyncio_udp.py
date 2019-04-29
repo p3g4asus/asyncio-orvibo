@@ -101,6 +101,9 @@ class Endpoint:
                 try:
                     (rec_data,rec_addr) = await asyncio.wait_for(self.receive(addr), timeout-passed)
                     rv = check_data_fun(rec_data,rec_addr) 
+                    if isinstance(rv, tuple):
+                        rec_data = rv[1]
+                        rv = rv[0]
                     if rv==CD_RETURN_IMMEDIATELY:
                         self.broadcast = False
                         return rec_data,rec_addr
