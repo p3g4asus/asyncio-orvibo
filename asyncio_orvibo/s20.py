@@ -16,8 +16,8 @@ STATECHANGE_LEN = b'\x00\x17'
 
 class S20(OrviboUDP):
 
-    def __init__(self,hp,mac,mytime = None,**kwargs):
-        OrviboUDP.__init__(self, hp, mac, mytime, ** kwargs)
+    def __init__(self,hp,mac,mytime = None,timeout=3,**kwargs):
+        OrviboUDP.__init__(self, hp, mac, mytime, timeout, ** kwargs)
         self.state = -1
 
     def use_subscribe_data(self,s_data):
@@ -27,19 +27,20 @@ class S20(OrviboUDP):
         return CD_RETURN_IMMEDIATELY if len(data)>6 and data[4:6] == (STATECHANGE_ID) and self.is_my_mac(data) else CD_CONTINUE_WAITING
     
         
-    async def state_change(self,newst):
+    async def state_change(self,newst,timeout=-1,retry=3):
         if await self.subscribe_if_necessary():
             newst = 1 if int(newst) else 0
             pkt = MAGIC + STATECHANGE_LEN + STATECHANGE_ID + self.mac + PADDING_1\
                 + PADDING_2+(b'\x01' if newst else b'\x00')
-            if await self.protocol(pkt,self.hp,self.check_statechange_packet,3,3):
+            timeout = self.timeout if timeout<=0 else timeout
+            if await OrviboUDP.protocol(pkt,self.hp,self.check_statechange_packet,timeout,retry):
                 self.state = newst
                 return True
         return False
     
     @staticmethod
-    async def discovery(broadcast_address='255.255.255.255',timeout=5,retries=3):
-        disc = await OrviboUDP.discovery(broadcast_address, timeout, retries)
+    async def discovery(broadcast_address='255.255.255.255',timeout=5,retry=3):
+        disc = await OrviboUDP.discovery(broadcast_address, timeout, retry)
         hosts = dict()
         for k,v in disc.items():
             if v['type']==DISCOVERY_S20:

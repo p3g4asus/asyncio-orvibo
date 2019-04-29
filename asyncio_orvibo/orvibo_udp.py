@@ -27,7 +27,7 @@ class OrviboUDP:
     def __repr__(self):
         return "[%s:%d] %s %s" % (*self.hp,OrviboUDP.print_mac(self.mac),time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.mytime)))
         
-    def __init__(self,hp,mac,mytime = None,**kwargs):
+    def __init__(self,hp,mac,mytime = None,timeout=3,**kwargs):
         self.hp = hp
         if isinstance(mac, bytes):
             self.mac = mac
@@ -40,6 +40,7 @@ class OrviboUDP:
         self.time_subscribe = 0
         self.mytime = mytime - 2208988800 if mytime is not None else time.time()
         self.learning_time = 0
+        self.timeout = timeout
         
     def use_subscribe_data(self,s_data):
         pass
@@ -106,11 +107,12 @@ class OrviboUDP:
     def check_subscription_packet(self,data,addr):
         return CD_RETURN_IMMEDIATELY if len(data)>=13 and data[4:6] == (SUBSCRIBE_ID) and self.is_my_mac(data) else CD_CONTINUE_WAITING
     
-    async def subscribe_if_necessary(self):
+    async def subscribe_if_necessary(self,timeout=-1,retry=3):
         now = time.time()
         if now-self.time_subscribe>SUBSCRIPTION_TIMEOUT:
-            out_data = await self.protocol(MAGIC + SUBSCRIBE_LEN + SUBSCRIBE_ID + self.mac \
-                                    + PADDING_1 + self.mac_reversed + PADDING_1,self.hp,self.check_subscription_packet,3,3)
+            timeout = self.timeout if timeout<=0 else timeout
+            out_data = await OrviboUDP.protocol(MAGIC + SUBSCRIBE_LEN + SUBSCRIBE_ID + self.mac \
+                                    + PADDING_1 + self.mac_reversed + PADDING_1,self.hp,self.check_subscription_packet,timeout,retry)
             if out_data:
                 self.time_subscribe = time.time()
                 self.use_subscribe_data(out_data[0])
@@ -120,10 +122,10 @@ class OrviboUDP:
             return True
         
     @staticmethod
-    async def discovery(broadcast_address='255.255.255.255',timeout=5,retries=3):
+    async def discovery(broadcast_address='255.255.255.255',timeout=5,retry=3):
         out_data = await OrviboUDP.protocol(MAGIC + DISCOVERY_LEN + DISCOVERY_ID,\
                               (broadcast_address,PORT),
-                              OrviboUDP.check_discovery_packet, timeout, retries,is_broadcast=True,allow_broadcast=True)
+                              OrviboUDP.check_discovery_packet, timeout, retry,is_broadcast=True,allow_broadcast=True)
         if out_data:
             hosts = dict()
             for d_a in out_data:

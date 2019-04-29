@@ -28,14 +28,15 @@ class AllOne(OrviboUDP):
     def check_emitir_packet(self,data,addr):
         return CD_RETURN_IMMEDIATELY if len(data)>=6 and data[4:6] == (EMITIR_ID) and self.is_my_mac(data) else CD_CONTINUE_WAITING
         
-    async def emit_ir(self,irc):
+    async def emit_ir(self,irc,timeout=-1,retry=3):
         if await self.subscribe_if_necessary():
             plen = struct.pack('>H',len(irc)+26)
             ilen = struct.pack('<H',len(irc))
             rnd = struct.pack('<H',randint(0,65535))
             pkt = MAGIC + plen + EMITIR_ID + self.mac + PADDING_1\
                 + EMITIR_2 + rnd + ilen + irc
-            rv = await self.protocol(pkt,self.hp,self.check_emitir_packet,3,3)
+            timeout = self.timeout if timeout<=0 else timeout
+            rv = await OrviboUDP.protocol(pkt,self.hp,self.check_emitir_packet,timeout,retry)
             if rv:
                 return rv[0]
         return None
@@ -46,11 +47,12 @@ class AllOne(OrviboUDP):
     def check_learnir_get_packet(self,data,addr):
         return CD_RETURN_IMMEDIATELY if len(data)>=6 and data[4:6] == (LEARNIR_ID) and data[2:4]>LEARNIR_LEN and self.is_my_mac(data) else CD_CONTINUE_WAITING
         
-    async def learn_ir_init(self):
+    async def learn_ir_init(self,timeout=-1,retry=3):
         if await self.subscribe_if_necessary():
             pkt = MAGIC + LEARNIR_LEN + LEARNIR_ID + self.mac + PADDING_1\
                     + LEARNIR_2
-            if await self.protocol(pkt,self.hp,self.check_learnir_init_packet,3,3):
+            timeout = self.timeout if timeout<=0 else timeout
+            if await OrviboUDP.protocol(pkt,self.hp,self.check_learnir_init_packet,timeout,retry):
                 self.learning_time = time.time()
                 return True
         return False
@@ -58,14 +60,14 @@ class AllOne(OrviboUDP):
     async def learn_ir_get(self,timeout=30):
         to = min(LEARN_MAX_TIME-(time.time()-self.learning_time),timeout)
         if to>0:
-            rv = await self.protocol(None, self.hp,self.check_learnir_get_packet,to,1)
+            rv = await OrviboUDP.protocol(None, self.hp,self.check_learnir_get_packet,to,1)
             if rv and len(rv[0])>26:
                 return rv[0][26:]
         return None
     
     @staticmethod
-    async def discovery(broadcast_address='255.255.255.255',timeout=5,retries=3):
-        disc = await OrviboUDP.discovery(broadcast_address, timeout, retries)
+    async def discovery(broadcast_address='255.255.255.255',timeout=5,retry=3):
+        disc = await OrviboUDP.discovery(broadcast_address, timeout, retry)
         hosts = dict()
         for k,v in disc.items():
             if v['type']==DISCOVERY_ALLONE:
