@@ -174,21 +174,6 @@ class Endpoint:
     def closed(self):
         """Indicates whether the endpoint is closed or not."""
         return self._closed
-
-
-class LocalEndpoint(Endpoint):
-    """High-level interface for UDP local enpoints.
-    It is initialized with an optional queue size for the incoming datagrams.
-    """
-    pass
-
-
-class RemoteEndpoint(Endpoint):
-    """High-level interface for UDP remote enpoints.
-    It is initialized with an optional queue size for the incoming datagrams.
-    """
-
-
 # High-level coroutines
 
 async def open_datagram_endpoint(
@@ -214,7 +199,7 @@ async def open_local_endpoint(
     """
     return await open_datagram_endpoint(
         host, port, remote=False,
-        endpoint_factory=lambda: LocalEndpoint(queue_size),
+        endpoint_factory=lambda: Endpoint(queue_size),
         **kwargs)
 
 
@@ -226,5 +211,5 @@ async def open_remote_endpoint(
     """
     return await open_datagram_endpoint(
         host, port, remote=True,
-        endpoint_factory=lambda: RemoteEndpoint(queue_size),
+        endpoint_factory=lambda: Endpoint(queue_size),
         **kwargs)
