@@ -76,6 +76,7 @@ class AllOne(OrviboUDP):
 
 if __name__ == '__main__': # pragma: no cover
     import sys
+    import traceback
     async def testFake(n):
         for i in range(n):
             _LOGGER.debug("Counter is %d",i)
