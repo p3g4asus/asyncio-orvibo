@@ -81,8 +81,9 @@ if __name__ == '__main__': # pragma: no cover
         loop.run_until_complete(discoveryTest())
         asyncio.ensure_future(testFake(10))
         loop.run_until_complete(set_state_test(int(sys.argv[1])))
-    except object as ex:
+    except BaseException as ex:
         _LOGGER.error("Test error %s",str(ex))
+    except:
         traceback.print_exc()
     finally:
         loop.close()

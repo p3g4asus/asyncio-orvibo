@@ -56,9 +56,12 @@ class OrviboUDP:
                         if out_data:
                             break
                     break
-            except object as ex:
+            except BaseException as ex:
                 OrviboUDP.destroy_local()
                 _LOGGER.error("Protocol[%s:%d] error: %s",*addr,str(ex))
+            except:
+                OrviboUDP.destroy_local()
+                _LOGGER.error("Protocol[%s:%d] error",*addr)
         #=======================================================================
         # if not out_data:
         #     OrviboUDP.destroy_local()
@@ -70,8 +73,11 @@ class OrviboUDP:
         if not OrviboUDP._local:
             try:
                 OrviboUDP._local = await open_local_endpoint(port=PORT,**kwargs)
-            except object as ex:
+            except BaseException as ex:
                 _LOGGER.error("Open endpoint error %s",str(ex))
+                OrviboUDP._local = None
+            except:
+                _LOGGER.error("Open endpoint error")
                 OrviboUDP._local = None
         return OrviboUDP._local
     

@@ -120,7 +120,9 @@ if __name__ == '__main__': # pragma: no cover
         loop.run_until_complete(discoveryTest())
         loop.run_until_complete(emit_test('00000000ec000000000000000000dc00d2008604d200ec02d400e80ad4000d05d9000b05d2008404d4007103d4008132d400fc03d4001e06d400ec02d400ec02d4009705d2008404d400ec02d400ea02dc00ffff283e0100d200fd03d4008404d400ec02d400eb0ad2000d05d4000d05d4008404d4007103d6008132d200fd03d400610ad4002e07d400ec02d4009405d4008504d300ec02d400ea02d400ffff333e0100cc00fd03d4008404d300ed02d300eb0ad1000e05d3000e05d4008404d4007203d3008432d100fd03d300640ad1002f07d300ed02d3009505d3008504d400ee02d000eb02d3000000'))
         #loop.run_until_complete(learn_test())
-    except object as ex:
+    except BaseException as ex:
         _LOGGER.error("Test error %s",str(ex))
+    except:
+        _LOGGER.error("Test error %s",traceback.format_exc())
     finally:
         loop.close()
