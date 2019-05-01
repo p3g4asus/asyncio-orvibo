@@ -10,7 +10,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="asyncio-orvibo",
-    version="1.16",
+    version="1.17",
     author="p3g4asus",
     author_email="fulminedipegasus@gmail.com",
     description="Asyncio module for Orvibo devices control",
