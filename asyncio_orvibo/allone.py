@@ -47,7 +47,7 @@ class AllOne(OrviboUDP):
     def check_learnir_get_packet(self,data,addr):
         return CD_RETURN_IMMEDIATELY if len(data)>=6 and data[4:6] == (LEARNIR_ID) and data[2:4]>LEARNIR_LEN and self.is_my_mac(data) else CD_CONTINUE_WAITING
         
-    async def learn_ir_init(self,timeout=-1,retry=3):
+    async def enter_learning_mode(self,timeout=-1,retry=3):
         if await self.subscribe_if_necessary():
             pkt = MAGIC + LEARNIR_LEN + LEARNIR_ID + self.mac + PADDING_1\
                     + LEARNIR_2
@@ -57,7 +57,7 @@ class AllOne(OrviboUDP):
                 return True
         return False
     
-    async def learn_ir_get(self,timeout=30):
+    async def get_learned_key(self,timeout=30):
         to = min(LEARN_MAX_TIME-(time.time()-self.learning_time),timeout)
         if to>0:
             rv = await OrviboUDP.protocol(None, self.hp,self.check_learnir_get_packet,to,1)
@@ -106,10 +106,10 @@ if __name__ == '__main__': # pragma: no cover
             _LOGGER.warning("Emit failed")
     async def learn_test():
         a = AllOne(('192.168.25.41',10000),b'\xac\xcf\x23\x72\x5a\x50')
-        rv = await a.learn_ir_init()
+        rv = await a.enter_learning_mode()
         if rv:
             _LOGGER.info("Entered learning mode: please press key")
-            rv = await a.learn_ir_get()
+            rv = await a.get_learned_key()
             if rv:
                 _LOGGER.info("Obtained %s",binascii.hexlify(rv).decode('utf-8'))
             else:
