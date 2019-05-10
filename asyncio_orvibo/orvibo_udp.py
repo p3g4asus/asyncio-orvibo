@@ -72,7 +72,7 @@ class OrviboUDP:
     async def init_local(**kwargs):
         if not OrviboUDP._local:
             try:
-                OrviboUDP._local = await open_local_endpoint(port=PORT,**kwargs)
+                OrviboUDP._local = await open_local_endpoint(port=PORT,allow_broadcast=True,**kwargs)
             except BaseException as ex:
                 _LOGGER.error("Open endpoint error %s",str(ex))
                 OrviboUDP._local = None
@@ -131,7 +131,7 @@ class OrviboUDP:
     async def discovery(broadcast_address='255.255.255.255',timeout=5,retry=3):
         out_data = await OrviboUDP.protocol(MAGIC + DISCOVERY_LEN + DISCOVERY_ID,\
                               (broadcast_address,PORT),
-                              OrviboUDP.check_discovery_packet, timeout, retry,is_broadcast=True,allow_broadcast=True)
+                              OrviboUDP.check_discovery_packet, timeout, retry,is_broadcast=True)
         if out_data:
             hosts = dict()
             for d_a in out_data:
