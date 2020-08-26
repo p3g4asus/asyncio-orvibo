@@ -17,7 +17,7 @@ async def main():
 import asyncio
 import time
 from . import _LOGGER
-from .const import (CD_ADD_AND_CONTINUE_WAITING,CD_RETURN_IMMEDIATELY,CD_ABORT_AND_RETRY)
+from .const import (CD_ADD_AND_CONTINUE_WAITING, CD_RETURN_IMMEDIATELY, CD_ABORT_AND_RETRY)
 
 
 class DatagramEndpointProtocol(asyncio.DatagramProtocol):
@@ -71,7 +71,7 @@ class Endpoint:
             key = self._init_queue(addr)
             self._queue[key].put_nowait((data, addr))
         except asyncio.QueueFull:
-            _LOGGER.warning('Endpoint[%s:%d] queue is full',*addr)
+            _LOGGER.warning('Endpoint[%s:%d] queue is full', *addr)
 
     def close(self):
         # Manage flag
@@ -79,7 +79,7 @@ class Endpoint:
             return
         self._closed = True
         # Wake up
-        for a,q in self._queue.items():
+        for a, q in self._queue.items():
             if q.empty():
                 self.feed_datagram(None, a)
         # Close transport
@@ -87,32 +87,31 @@ class Endpoint:
             self._transport.close()
 
     # User methods
-    
-    async def protocol(self,data,addr,check_data_fun,timeout,retry=3,is_broadcast = False):
+    async def protocol(self, data, addr, check_data_fun, timeout, retry=3, is_broadcast=False):
         lstdata = []
         if is_broadcast:
             self.broadcast = True
         for _ in range(retry):
             if data:
-                self.send(data,addr,True)
+                self.send(data, addr, True)
             starttime = time.time()
             passed = 0
-            while passed<timeout:
+            while passed < timeout:
                 try:
-                    (rec_data,rec_addr) = await asyncio.wait_for(self.receive(addr), timeout-passed)
-                    rv = check_data_fun(rec_data,rec_addr) 
+                    (rec_data, rec_addr) = await asyncio.wait_for(self.receive(addr), timeout-passed)
+                    rv = check_data_fun(rec_data, rec_addr)
                     if isinstance(rv, tuple):
                         rec_data = rv[1]
                         rv = rv[0]
-                    if rv==CD_RETURN_IMMEDIATELY:
+                    if rv == CD_RETURN_IMMEDIATELY:
                         self.broadcast = False
-                        return rec_data,rec_addr
-                    elif rv==CD_ABORT_AND_RETRY:
+                        return rec_data, rec_addr
+                    elif rv == CD_ABORT_AND_RETRY:
                         break
-                    elif rv==CD_ADD_AND_CONTINUE_WAITING:
-                        lstdata.append((rec_data,rec_addr))
+                    elif rv == CD_ADD_AND_CONTINUE_WAITING:
+                        lstdata.append((rec_data, rec_addr))
                 except asyncio.TimeoutError:
-                    _LOGGER.warning("Protocol[%s:%d] timeout",*addr)
+                    _LOGGER.warning("Protocol[%s:%d] timeout", *addr)
                     break
                 passed = time.time()-starttime
             if lstdata:
@@ -122,22 +121,22 @@ class Endpoint:
                 break
         self.broadcast = False
         return None
-    
+
     @property
     def broadcast(self):
         return self._broadcast
+
     @broadcast.setter
-    def broadcast(self,v):
+    def broadcast(self, v):
         self._broadcast = v
-        
-    
-    def _init_queue(self,addr):
+
+    def _init_queue(self, addr):
         if self._broadcast:
             key = '*'
         else:
             key = addr[0]
         if key not in self._queue:
-            self._queue[key] =  asyncio.Queue(self._queue_size)
+            self._queue[key] = asyncio.Queue(self._queue_size)
         return key
 
     def send(self, data, addr, expect_response):
@@ -148,7 +147,7 @@ class Endpoint:
             self._init_queue(addr)
         self._transport.sendto(data, addr)
 
-    async def receive(self,expected_sender = ('*',0)):
+    async def receive(self, expected_sender=('*', 0)):
         """Wait for an incoming datagram and return it with
         the corresponding address.
         This method is a coroutine.
@@ -179,8 +178,9 @@ class Endpoint:
     def closed(self):
         """Indicates whether the endpoint is closed or not."""
         return self._closed
-# High-level coroutines
 
+
+# High-level coroutines
 async def open_datagram_endpoint(
         host, port, *, endpoint_factory=Endpoint, remote=False, **kwargs):
     """Open and return a datagram endpoint.
@@ -192,7 +192,7 @@ async def open_datagram_endpoint(
     endpoint = endpoint_factory()
     kwargs['remote_addr' if remote else 'local_addr'] = host, port
     kwargs['protocol_factory'] = lambda: DatagramEndpointProtocol(endpoint)
-    await loop.create_datagram_endpoint(**kwargs,reuse_address=True, reuse_port=None)
+    await loop.create_datagram_endpoint(**kwargs, reuse_address=True, reuse_port=None)
     return endpoint
 
 

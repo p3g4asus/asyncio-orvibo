@@ -7,64 +7,67 @@ Created on 25 apr 2019
 import logging
 import asyncio
 from . import _LOGGER
-from .const import (CD_RETURN_IMMEDIATELY,CD_CONTINUE_WAITING)
-from .orvibo_udp import (OrviboUDP,MAGIC,PADDING_1,DISCOVERY_S20,PADDING_2)
+from .const import (CD_RETURN_IMMEDIATELY, CD_CONTINUE_WAITING)
+from .orvibo_udp import (OrviboUDP, MAGIC, PADDING_1, DISCOVERY_S20, PADDING_2)
 
-STATECHANGE_ID  = b'\x64\x63'
+STATECHANGE_ID = b'\x64\x63'
 STATECHANGE_LEN = b'\x00\x17'
-# Datagram protocol
 
+
+# Datagram protocol
 class S20(OrviboUDP):
 
-    def __init__(self,hp,mac,mytime = None,timeout=3,**kwargs):
+    def __init__(self, hp, mac, mytime=None, timeout=3, **kwargs):
         OrviboUDP.__init__(self, hp, mac, mytime, timeout, ** kwargs)
         self.state = -1
 
-    def use_subscribe_data(self,s_data):
-        self.state = 0 if s_data[-1:]==b'\x00' else 1
-        
-    def check_statechange_packet(self,data,addr):
-        return CD_RETURN_IMMEDIATELY if len(data)>6 and data[4:6] == (STATECHANGE_ID) and self.is_my_mac(data) else CD_CONTINUE_WAITING
-    
-        
-    async def state_change(self,newst,timeout=-1,retry=3):
+    def use_subscribe_data(self, s_data):
+        self.state = 0 if s_data[-1:] == b'\x00' else 1
+
+    def check_statechange_packet(self, data, addr):
+        return CD_RETURN_IMMEDIATELY if len(data) > 6 and data[4:6] == (STATECHANGE_ID) and self.is_my_mac(data) else CD_CONTINUE_WAITING
+
+    async def state_change(self, newst, timeout=-1, retry=3):
         if await self.subscribe_if_necessary():
             newst = 1 if int(newst) else 0
             pkt = MAGIC + STATECHANGE_LEN + STATECHANGE_ID + self.mac + PADDING_1\
                 + PADDING_2+(b'\x01' if newst else b'\x00')
-            timeout = self.timeout if timeout<=0 else timeout
-            if await OrviboUDP.protocol(pkt,self.hp,self.check_statechange_packet,timeout,retry):
+            timeout = self.timeout if timeout <= 0 else timeout
+            if await OrviboUDP.protocol(pkt, self.hp, self.check_statechange_packet, timeout, retry):
                 self.state = newst
                 return True
         return False
-    
+
     @staticmethod
-    async def discovery(broadcast_address='255.255.255.255',timeout=5,retry=3):
+    async def discovery(broadcast_address='255.255.255.255', timeout=5, retry=3):
         disc = await OrviboUDP.discovery(broadcast_address, timeout, retry)
         hosts = dict()
-        for k,v in disc.items():
-            if v['type']==DISCOVERY_S20:
+        for k, v in disc.items():
+            if v['type'] == DISCOVERY_S20:
                 s = S20(**v)
-                s.state = 0 if v['raw'][-1:]==b'\x00' else 1
+                s.state = 0 if v['raw'][-1:] == b'\x00' else 1
                 hosts[k] = s
         return hosts
 
-if __name__ == '__main__': # pragma: no cover
+
+if __name__ == '__main__':  # pragma: no cover
     import sys
     import traceback
+
     async def testFake(n):
         for i in range(n):
-            _LOGGER.debug("Counter is %d",i)
+            _LOGGER.debug("Counter is %d", i)
             await asyncio.sleep(1)
+
     async def discoveryTest():
         v = await S20.discovery('192.168.25.255', 7, 3)
         if v:
-            _LOGGER.info("Discovery str %s",v)
+            _LOGGER.info("Discovery str %s", v)
         else:
             _LOGGER.warning("Discovery failed")
-    
+
     async def set_state_test(st):
-        a = S20(('192.168.25.42',10000),b'\xac\xcf\x23\x93\x34\x9c')
+        a = S20(('192.168.25.42', 10000), b'\xac\xcf\x23\x93\x34\x9c')
         rv = await a.state_change(st)
         if rv:
             _LOGGER.info("Change state ok")
@@ -82,8 +85,6 @@ if __name__ == '__main__': # pragma: no cover
         asyncio.ensure_future(testFake(10))
         loop.run_until_complete(set_state_test(int(sys.argv[1])))
     except BaseException as ex:
-        _LOGGER.error("Test error %s",str(ex))
-    except:
-        traceback.print_exc()
+        _LOGGER.error("Test error %s", str(ex))
     finally:
         loop.close()
